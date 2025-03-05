@@ -1,58 +1,100 @@
 <script setup lang="ts">
-import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
+import { storeToRefs } from 'pinia'
+import useUserStore from '@/stores/modules/user'
+import useAppStore from '@/stores/modules/app'
+import useRouteCache from '@/stores/modules/routeCache'
+import useRouteTransitionNameStore from '@/stores/modules/routeTransitionName'
+import useAutoThemeSwitcher from '@/hooks/useAutoThemeSwitcher'
+import { getUserInfo } from '@/api/user/index'
 
-onLaunch(() => {
-  console.log('App Launch')
+useHead({
+  title: 'MM-Read',
+  meta: [
+    {
+      name: 'description',
+      content: '',
+    },
+    {
+      name: 'theme-color',
+      content: () => isDark.value ? 'rgb(28, 28, 30)' : '#ffffff',
+    },
+  ],
+  link: [
+    {
+      rel: 'icon',
+      type: 'image/svg+xml',
+      href: () => preferredDark.value ? '/mm-read.png' : '/mm-read.png',
+    },
+  ],
 })
-onShow(() => {
-  console.log('App Show')
+
+const appStore = useAppStore()
+const { mode, themeVars } = storeToRefs(appStore)
+
+const routeTransitionNameStore = useRouteTransitionNameStore()
+const { routeTransitionName } = storeToRefs(routeTransitionNameStore)
+const { initializeThemeSwitcher } = useAutoThemeSwitcher(appStore)
+
+const keepAliveRouteNames = computed(() => {
+  return useRouteCache().routeCaches as string[]
 })
-onHide(() => {
-  console.log('App Hide')
+
+const userStore = useUserStore()
+async function getUser() {
+  try {
+    const res = await getUserInfo()
+    userStore.setUserInfo(res.data)
+  }
+  catch {
+    // TODO handle the exception
+  }
+}
+
+onMounted(() => {
+  initializeThemeSwitcher()
+  getUser()
+})
+
+const route = useRoute()
+watch([() => route.name, () => appStore.mode], () => {
+  useHead({
+    meta: [
+      {
+        name: 'theme-color',
+        content: () => route.meta.themeColor as string || (isDark.value ? 'rgb(28, 28, 30)' : '#ffffff'),
+      },
+    ],
+  })
 })
 </script>
 
-<style lang="scss">
-/* stylelint-disable selector-type-no-unknown */
-button::after {
-  border: none;
-}
+<template>
+  <VanConfigProvider class="flex flex-col container" :theme="mode" :theme-vars="themeVars" theme-vars-scope="global">
+    <NavBar />
+    <div class="h-0 flex-1 overflow-auto">
+      <router-view v-slot="{ Component, route }">
+        <!-- <transition :name="routeTransitionName"> -->
+        <keep-alive :include="keepAliveRouteNames">
+          <component :is="Component" :key="route.name" />
+        </keep-alive>
 
-swiper,
-scroll-view {
-  flex: 1;
+      <!-- </transition> -->
+      <!-- <transition name="routeTransitionName" mode="out-in">
+        <keep-alive :include="keepAliveRouteNames">
+          <component :is="Component" :key="route.name" />
+        </keep-alive>
+      </transition> -->
+      </router-view>
+    </div>
+    <TabBar />
+  </VanConfigProvider>
+</template>
+
+<style scoped lang="scss">
+.container {
   height: 100%;
-  overflow: hidden;
-}
-
-image {
-  width: 100%;
-  height: 100%;
-  vertical-align: middle;
-}
-
-// 单行省略，优先使用 unocss: text-ellipsis
-.ellipsis {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-// 两行省略
-.ellipsis-2 {
-  display: -webkit-box;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-// 三行省略
-.ellipsis-3 {
-  display: -webkit-box;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
+  width: 100dvw;
+  position: absolute;
+  inset: 0;
 }
 </style>

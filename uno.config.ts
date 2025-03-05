@@ -1,89 +1,52 @@
-// uno.config.ts
 import {
-  type Preset,
   defineConfig,
-  presetUno,
   presetAttributify,
   presetIcons,
-  transformerDirectives,
-  transformerVariantGroup,
+  presetMini,
+  presetUno,
 } from 'unocss'
 
-import { presetApplet, presetRemRpx, transformerAttributify } from 'unocss-applet'
+import presetRemToPx from '@unocss/preset-rem-to-px'
 
-// @see https://unocss.dev/presets/legacy-compat
-// import { presetLegacyCompat } from '@unocss/preset-legacy-compat'
+// 刚使用unocss的朋友，可以借助这个工具： https://to-unocss.netlify.app
 
-const isMp = process.env?.UNI_PLATFORM?.startsWith('mp') ?? false
-
-const presets: Preset[] = []
-if (isMp) {
-  // 使用小程序预设
-  presets.push(presetApplet(), presetRemRpx())
-} else {
-  presets.push(
-    // 非小程序用官方预设
-    presetUno(),
-    // 支持css class属性化
-    presetAttributify(),
-  )
-}
 export default defineConfig({
   presets: [
-    ...presets,
-    // 支持图标，需要搭配图标库，eg: @iconify-json/carbon, 使用 `<button class="i-carbon-sun dark:i-carbon-moon" />`
-    presetIcons({
-      scale: 1.2,
-      warn: true,
-      extraProperties: {
-        display: 'inline-block',
-        'vertical-align': 'middle',
-      },
+    presetUno,
+    presetAttributify,
+    presetIcons({ warn: true, prefix: ['i-'], extraProperties: {
+      display: 'inline-block',
+    } }),
+    // 为什么要用到这个插件？
+    // 模板使用 viewport 作为移动端适配方案，unocss 默认单位为 rem
+    // 所以需要转成 px，然后由 postcss 把 px 转成 vw/vh，完成适配
+    presetRemToPx({
+      // 这里为什么要设置基础字体大小？看下面这篇文章
+      // https://juejin.cn/post/7262975395620618298
+      baseFontSize: 4,
     }),
-    // 将颜色函数 (rgb()和hsl()) 从空格分隔转换为逗号分隔，更好的兼容性app端，example：
-    // `rgb(255 0 0)` -> `rgb(255, 0, 0)`
-    // `rgba(255 0 0 / 0.5)` -> `rgba(255, 0, 0, 0.5)`
-    // 与群友的正常写法冲突，先去掉！（2024-05-25）
-    // presetLegacyCompat({
-    //   commaStyleColorFunction: true,
-    // }) as Preset,
+    presetMini(),
   ],
-  /**
-   * 自定义快捷语句
-   * @see https://github.com/unocss/unocss#shortcuts
-   */
-  shortcuts: [['center', 'flex justify-center items-center']],
-  transformers: [
-    // 启用 @apply 功能
-    transformerDirectives(),
-    // 启用 () 分组功能
-    // 支持css class组合，eg: `<div class="hover:(bg-gray-400 font-medium) font-(light mono)">测试 unocss</div>`
-    transformerVariantGroup(),
-    // Don't change the following order
-    transformerAttributify({
-      // 解决与第三方框架样式冲突问题
-      prefixedOnly: true,
-      prefix: 'fg',
-    }),
-  ],
-  rules: [
-    [
-      'p-safe',
-      {
-        padding:
-          'env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)',
-      },
-    ],
-    ['pt-safe', { 'padding-top': 'env(safe-area-inset-top)' }],
-    ['pb-safe', { 'padding-bottom': 'env(safe-area-inset-bottom)' }],
-  ],
-})
+  shortcuts: {
+    // shortcuts to multiple utilities
+    'btn': 'px-6 py-3 rounded-3 border-none inline-block bg-green-400 text-white cursor-pointer !outline-none hover:bg-green-600 disabled:cursor-default disabled:bg-gray-600 disabled:opacity-50',
+    'wh-full': 'w-full h-full',
+    'text-title': 'font-600 text-18 h-48 flex items-center',
+    'flex-center': 'flex items-center justify-center',
+    'bg-grey': 'bg-#F5F5F5',
+    'color-gray-10': 'text-#15171C',
+    'color-gray-9': 'text-#222529',
+    'color-gray-8': 'text-#5C5E62',
+    'color-gray-7': 'text-#9B9EA3',
+    'color-primary': 'text-#83b5ad',
+    'font-size-12': 'text-12 lh-18',
+    'font-size-13': 'text-13 lh-18',
+    'font-size-14': 'text-14 lh-20',
+    'font-size-15': 'text-15 lh-20',
+    'font-size-16': 'text-16 lh-22',
+    'font-size-17': 'text-13 lh-22',
+    'font-size-18': 'text-18 lh-24',
+    'card': 'bg-white b-rd-4 ',
 
-/**
- * 最终这一套组合下来会得到：
- * mp 里面：mt-4 => margin-top: 32rpx  == 16px
- * h5 里面：mt-4 => margin-top: 1rem == 16px
- *
- * 如果是传统方式写样式，则推荐设计稿设置为 750，这样设计稿1px，代码写1rpx。
- * rpx是响应式的，可以让不同设备的屏幕显示效果保持一致。
- */
+  },
+})

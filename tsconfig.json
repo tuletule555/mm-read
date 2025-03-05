@@ -1,39 +1,44 @@
 {
   "compilerOptions": {
-    "composite": true,
-    "skipLibCheck": true,
-    "module": "ESNext",
-    "moduleResolution": "Node",
-    "resolveJsonModule": true,
-    "noImplicitThis": true,
-    "allowSyntheticDefaultImports": true,
-    "allowJs": true,
-    "sourceMap": true,
+    "target": "esnext",
+    "jsx": "preserve",
+    "lib": ["esnext", "dom", "dom.iterable", "scripthost"],
+    "experimentalDecorators": true,
     "baseUrl": ".",
+    "module": "esnext",
+    "moduleResolution": "Bundler",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["src/*"]
     },
-    "outDir": "dist",
-    "lib": ["esnext", "dom"],
     "types": [
-      "@dcloudio/types",
-      "@uni-helper/uni-types",
-      "@types/wechat-miniprogram",
-      "wot-design-uni/global.d.ts"
-    ]
+      "node",
+      "unplugin-vue-router/client",
+      "vite-plugin-pwa/client",
+      "@intlify/unplugin-vue-i18n/messages"
+    ],
+    "allowJs": true,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "importHelpers": true,
+    "sourceMap": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true
   },
-  "vueCompilerOptions": {
-    "target": 3,
-    "plugins": ["@uni-helper/uni-types/volar-plugin"]
-  },
-  "exclude": ["node_modules"],
   "include": [
+    "src/App.vue",
     "src/**/*.ts",
-    "src/**/*.js",
-    "src/**/*.d.ts",
     "src/**/*.tsx",
-    "src/**/*.jsx",
     "src/**/*.vue",
-    "src/**/*.json"
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "src/components.d.ts",
+    "src/auto-imports.d.ts",
+    "src/typed-router.d.ts",
+    "tests/*.ts",
+    "public/service-worker.js"
   ]
 }

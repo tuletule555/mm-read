@@ -1,63 +1,72 @@
 {
-  // 默认格式化工具选择prettier
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
-  // 保存的时候自动格式化
-  "editor.formatOnSave": true,
-  //开启自动修复
+  // Enable the ESlint flat config support
+  "eslint.useFlatConfig": true,
+
+  // Disable the default formatter, use eslint instead
+  "prettier.enable": false,
+  "editor.formatOnSave": false,
+
+  // Auto fix
   "editor.codeActionsOnSave": {
     "source.fixAll": "explicit",
-    "source.fixAll.eslint": "explicit",
-    "source.fixAll.stylelint": "explicit"
+    "source.organizeImports": "never"
   },
-  // 配置stylelint检查的文件类型范围
-  "stylelint.validate": ["css", "scss", "vue", "html"], // 与package.json的scripts对应
-  "stylelint.enable": true,
-  "css.validate": false,
-  "less.validate": false,
-  "scss.validate": false,
-  "[shellscript]": {
-    "editor.defaultFormatter": "foxundermoon.shell-format"
-  },
-  "[dotenv]": {
-    "editor.defaultFormatter": "foxundermoon.shell-format"
-  },
-  "[vue]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[jsonc]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  // 配置语言的文件关联
-  "files.associations": {
-    "pages.json": "jsonc", // pages.json 可以写注释
-    "manifest.json": "jsonc" // manifest.json 可以写注释
-  },
-  "cSpell.words": [
-    "climblee",
-    "commitlint",
-    "dcloudio",
-    "iconfont",
-    "qrcode",
-    "refresherrefresh",
-    "scrolltolower",
-    "tabbar",
-    "unibest",
-    "uvui",
-    "WechatMiniprogram"
+
+  // Silent the stylistic rules in you IDE, but still auto fix them
+  "eslint.rules.customizations": [
+    { "rule": "style/*", "severity": "off" },
+    { "rule": "*-indent", "severity": "off" },
+    { "rule": "*-spacing", "severity": "off" },
+    { "rule": "*-spaces", "severity": "off" },
+    { "rule": "*-order", "severity": "off" },
+    { "rule": "*-dangle", "severity": "off" },
+    { "rule": "*-newline", "severity": "off" },
+    { "rule": "*quotes", "severity": "off" },
+    { "rule": "*semi", "severity": "off" }
   ],
-  "typescript.tsdk": "node_modules\\typescript\\lib",
-  // 控制相关文件嵌套展示
-  "explorer.fileNesting.enabled": true,
-  "explorer.fileNesting.expand": false,
-  "explorer.fileNesting.patterns": {
-    "*.ts": "$(capture).test.ts, $(capture).test.tsx",
-    "*.tsx": "$(capture).test.ts, $(capture).test.tsx",
-    // "*.env": "$(capture).env.*",
-    "CHANGELOG.md": "CHANGELOG*",
-    "package.json": "pnpm-lock.yaml,pnpm-workspace.yaml,LICENSE,.gitattributes,.gitignore,.gitpod.yml,CNAME,.npmrc,.browserslistrc",
-    ".eslintrc.cjs": ".eslintignore,.prettierignore,.stylelintignore,.commitlintrc.*,.prettierrc.*,.stylelintrc.*,.eslintrc-auto-import.json,.editorconfig,.commitlint.cjs"
+
+  // Enable eslint for all supported languages
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+    "vue",
+    "html",
+    "markdown",
+    "json",
+    "jsonc",
+    "yaml",
+    "toml",
+    "xml",
+    "gql",
+    "graphql",
+    "astro",
+    "css",
+    "less",
+    "scss",
+    "pcss",
+    "postcss"
+  ],
+
+  // Specify the UI library you need to prompt
+  "common-intellisense.showSlots": false,
+  "common-intellisense.ui": [
+    "vant4"
+  ],
+
+  // Configuration of i18n i18n-ally
+  "i18n-ally.enabledParsers": ["json"],
+  "i18n-ally.displayLanguage": "zh-CN",
+  "i18n-ally.localesPaths": [
+    "src/locales"
+  ],
+  "i18n-ally.keystyle": "nested",
+
+  // Markdownlint rules
+  "markdownlint.config": {
+    "default": true,
+    "MD033": false,
+    "MD041": false
   }
 }

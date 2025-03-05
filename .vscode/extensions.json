@@ -1,18 +1,9 @@
 {
   "recommendations": [
-    "vue.volar",
-    "stylelint.vscode-stylelint",
-    "esbenp.prettier-vscode",
-    "dbaeumer.vscode-eslint",
+    "Vue.volar",
     "antfu.unocss",
-    "antfu.iconify",
-    "evils.uniapp-vscode",
-    "uni-helper.uni-helper-vscode",
-    "uni-helper.uni-app-schemas-vscode",
-    "uni-helper.uni-highlight-vscode",
-    "uni-helper.uni-ui-snippets-vscode",
-    "uni-helper.uni-app-snippets-vscode",
-    "mrmlnc.vscode-json5",
-    "streetsidesoftware.code-spell-checker"
+    "simonhe.common-intellisense",
+    "lokalise.i18n-ally",
+    "antfu.iconify"
   ]
 }
