@@ -1,40 +1,12 @@
 <script setup lang="ts">
 interface Props {
-  current?: number
-  total?: number
-  configs?: Record<string, any>
   book?: Record<string, any>
   isCurrentMark?: boolean
 }
 const props = withDefaults(defineProps<Props>(), {
 })
-
-const emits = defineEmits(['currentChange', 'configsChange'])
-
-const list = [{
-  value: 'bookmark',
-  label: '书签',
-  icon: 'i-uil:bookmark',
-}, {
-  value: '_current',
-  label: '进度',
-  icon: 'i-uil:slider-h',
-}, {
-  value: 'font',
-  label: '字体',
-  icon: 'i-uil:font',
-}, {
-  value: 'setting',
-  label: '设置',
-  icon: 'i-uil:setting',
-}]
-
 const show = ref<boolean>(false)
-const _current = ref<number>()
-const _configs = ref<Record<string, any>>({})
 function onOpen() {
-  _current.value = props.current
-  _configs.value = props.configs
   show.value = true
 }
 function onClose() {
@@ -50,12 +22,6 @@ function onToggle() {
   return show.value
 }
 
-const activeSetting = ref(list[1])
-function onActiveSettingChange(item) {
-  if (activeSetting.value?.value !== item.value) {
-    activeSetting.value = item
-  }
-}
 function onBack() {
   history.back()
 }
@@ -68,7 +34,12 @@ defineExpose({
 </script>
 
 <template>
-  <van-popup v-model:show="show" position="top" :overlay="false" :lock-scroll="false">
+  <van-popup
+    v-model:show="show"
+    position="top"
+    :overlay="false"
+    :lock-scroll="false"
+  >
     <VanNavBar
       :title="props.book?.name"
       clickable
@@ -78,7 +49,15 @@ defineExpose({
       @click-left="onBack"
     >
       <template #right>
-        <i v-if="isCurrentMark" class="i-uil:bookmark h-24 w-24" />
+        <svg
+          v-if="isCurrentMark"
+          class="bookmark-indicator"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path d="M6 2C4.89543 2 4 2.89543 4 4V21C4 21.5523 4.44772 22 5 22C5.27614 22 5.52678 21.8946 5.70711 21.7071L12 15.4142L18.2929 21.7071C18.6834 22.0976 19.3166 22.0976 19.7071 21.7071C19.8946 21.5268 20 21.2761 20 21V4C20 2.89543 19.1046 2 18 2H6Z" />
+        </svg>
       </template>
     </VanNavBar>
   </van-popup>
@@ -87,5 +66,18 @@ defineExpose({
 <style lang="scss" scoped>
 .slider {
   --van-slider-bar-height: 8px;
+}
+.bookmark-indicator {
+  top: 0;
+  right: 12px;
+  z-index: 10;
+  width: 28px;
+  height: 28px;
+  color: var(--van-primary-color);
+  padding: 4px;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  user-select: none;
+  pointer-events: none;
 }
 </style>

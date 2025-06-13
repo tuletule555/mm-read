@@ -56,16 +56,16 @@ async function toChangeName() {
   namePopRef.value.onOpen()
 }
 const phoneRef = ref()
-async function toChangePhone() {
-  phoneRef.value.onOpen()
-}
+// async function toChangePhone() {
+//   phoneRef.value.onOpen()
+// }
 onMounted(() => {
   getUser()
 })
 </script>
 
 <template>
-  <div class="flex flex-col">
+  <div class="min-h-full flex flex-col">
     <div class="mt20 flex items-center justify-center">
       <Upload v-model="formData.head_img" class="head-image" :limit="1" :preview-image="true" reupload :deletable="false">
         <template #default>

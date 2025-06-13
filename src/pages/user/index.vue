@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SettingPop from './components/SettingPop.vue'
 import useUserStore from '@/stores/modules/user'
 import { getTotal } from '@/api/book'
 
@@ -37,13 +38,18 @@ async function getTotalCount() {
   }
 }
 
+const settingPopRef = ref()
+function toSetting() {
+  settingPopRef.value.onOpen()
+}
+
 onMounted(() => {
   getTotalCount()
 })
 </script>
 
 <template>
-  <div class="h-full flex flex-col p20">
+  <div class="min-h-full flex flex-col p20">
     <div class="flex items-center">
       <div class="">
         <van-image
@@ -62,18 +68,18 @@ onMounted(() => {
           VIP1
         </div>
       </div>
-      <div class="flex-center color-gray-7" @click="toUserInfo">
+      <div class="flex-center color-gray-8" @click="toUserInfo">
         编辑<i class="i-uil:angle-right-b h-24 w-24" />
       </div>
     </div>
     <div class="mt20 w-full flex-1">
-      <div class="card flex-center b-rd-8 p20">
+      <div class="mb20 flex-center b-rd-8 card p20">
         <div class="flex-center flex-1 flex-col font-size-14">
           <div class="flex-center color-gray-9">
             <i class="i-uil:book mr-4 h-16 w-16" />书籍
           </div>
           <div class="position-relative mt20">
-            <span class="font-size-30 color-primary">{{ total.count }}</span><span class="position-absolute right-[-20px] color-gray-7">本</span>
+            <span class="font-size-30 color-primary">{{ total.count }}</span><span class="position-absolute right-[-20px] color-gray-8">本</span>
           </div>
         </div>
         <van-divider vertical style="height: 60px;" />
@@ -82,13 +88,26 @@ onMounted(() => {
             <i class="i-uil:swatchbook mr-4 h-16 w-16" />读完
           </div>
           <div class="position-relative mt20">
-            <span class="font-size-30 color-primary">{{ total.finished }}</span><span class="position-absolute right-[-20px] color-gray-7">本</span>
+            <span class="font-size-30 color-primary">{{ total.finished }}</span><span class="position-absolute right-[-20px] color-gray-8">本</span>
           </div>
         </div>
+      </div>
+      <div class="mt20">
+        <van-cell-group class="user-cellgroup" inset>
+          <van-cell title="设置" is-link @click="toSetting" />
+        </van-cell-group>
       </div>
     </div>
     <van-button class="mt20" round block type="primary" @click="toLogin">
       退出登录
     </van-button>
+    <SettingPop ref="settingPopRef" />
   </div>
 </template>
+
+<style lang="scss" scoped>
+.user-cellgroup {
+  margin-left: 0;
+  margin-right: 0;
+}
+</style>

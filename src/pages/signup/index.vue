@@ -72,7 +72,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="h-full w-full flex items-center justify-center">
+  <div class="min-h-full w-full flex items-center justify-center">
     <van-form class="login-form mb80 p20" @submit="onSubmit">
       <van-cell-group inset>
         <van-field

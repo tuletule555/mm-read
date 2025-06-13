@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const props = withDefaults(defineProps<{
   placeholder?: boolean
+  back?: () => void
 }>(), {
   placeholder: true,
 })
@@ -8,6 +9,10 @@ const route = useRoute()
 // const router = useRouter()
 
 function onBack() {
+  if (props.back) {
+    props.back()
+    return
+  }
   if (window.history.state.back)
     history.back()
 }

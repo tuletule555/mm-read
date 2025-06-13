@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { showToast } from 'vant'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
+import dayjs from 'dayjs'
+import Book from './components/Book.vue'
 import BottomPop from './components/BottomPop.vue'
 import TopPop from './components/TopPop.vue'
 import { getBook, updateBook } from '@/api/book'
 import http from '@/utils/request'
-import { editUser } from '@/api/user'
-import useUserStore from '@/stores/modules/user'
 
+// 页面定义
 definePage({
   name: 'book.detail',
   meta: {
@@ -18,147 +19,157 @@ definePage({
 })
 
 const route = useRoute()
-const userStore = useUserStore()
-const configs = computed(() => {
-  return {
-    gap: 16,
-    fontSize: 20,
-    lineHeight: 28,
-    // turnPageConfig: 1, // 1左右,2上下
-    transition: true,
-    direction: 'horizontal',
-    ...JSON.parse(userStore.userInfo?.read_configs as string || '{}'),
-  }
-})
+const book_id = ref<string>(route.query.id as string)
+const book = ref<Record<string, any>>({ bookmark: [] })
+const content = ref('')
+const loading = ref(false)
 
-const book = ref()
-const content = ref()
-const chapters = ref([])
-const wrapperRef = ref()
-const contentRef = ref()
-const endRef = ref()
-const current = ref<number>(1)
-const total = ref<number>(1)
-const loading = ref<boolean>(true)
-const diffX = ref(0)
-const diffY = ref(0)
+const wrapperRef = ref<HTMLElement | null>(null)
+const bookRef = ref()
+const topPopRef = ref()
+const bottomPopRef = ref()
 
-const translateX = computed(() => {
-  const width = wrapperRef.value?.clientWidth - configs.value.gap
-  return (current.value - 1) * width * -1 - diffX.value
-})
-const translateY = computed(() => {
-  if (diffY.value < 0) {
-    return Math.min((-1 * diffY.value), 50)
-  }
-  else {
-    return 0
-  }
-})
+// 手势位置
+const startX = ref(0)
+const startY = ref(0)
+const endX = ref(0)
+const endY = ref(0)
 
-const directionVerticalTranslate = ref(0)
+// 滑动动画状态
+const isSlidingDown = ref(false)
 
-const getStyles = computed(() => {
-  const styles: any = {
-    padding: `${configs.value.gap}px`,
-    fontSize: `${configs.value.fontSize}px`,
-    lineHeight: `${configs.value.lineHeight}px`,
-  }
-  if (configs.value.direction === 'horizontal') {
-    styles.transform = `translate(${translateX.value}px,${translateY.value}px)`
-    styles.columnGap = `${configs.value.gap}px`
-    styles.columns = `calc(100svw - ${configs.value.gap * 2}px) 1`
-  }
-  else if (configs.value.direction === 'vertical') {
-    styles.transform = `translateY(${directionVerticalTranslate.value}px)`
-    // styles.columnGap = `${configs.value.gap}px`
-    // styles.columns = `calc(100svw - ${configs.value.gap * 2}px) 1`
-  }
-  return styles
-})
-
-async function onConfigsChange(v) {
-  const data = {
-    read_configs: JSON.stringify(v),
-  }
-  await editUser(data)
-  if (v.fontSize !== configs.value.fontSize || v.gap !== configs.value.gap || v.lineHeight !== configs.value.lineHeight) {
-    book.value.progress = current.value / total.value
-    initPage()
-  }
-  contentRef.value.style.transition = v.transition ? '0.4s ease' : 'none'
-  userStore.setUserInfo({ ...userStore.userInfo, ...data })
-}
-function onCurrentChange(v: number) {
-  current.value = v
-}
-function onChapterChange(item: any) {
-  const width = wrapperRef.value?.clientWidth - configs.value.gap
-  const offsetLeft = document.getElementById(item.id)?.offsetLeft
-  current.value = Math.min(Math.max(1, Math.ceil(offsetLeft / width)), total.value)
-}
-
-function initPage() {
-  nextTick(() => {
-    const width = wrapperRef.value?.clientWidth - configs.value.gap
-    total.value = Math.ceil(endRef.value?.offsetLeft / width)
-    const progress = Number.parseFloat(localStorage.getItem(`book${route.query.id}`) || book.value.progress)
-    current.value = Math.min(Math.max(1, Math.round(progress * total.value)), total.value)
-    if (configs.value.transition) {
-      setTimeout(() => {
-        contentRef.value.style.transition = '0.4s ease'
-      }, 400)
-    }
-  })
-}
+// 获取内容（示例用空）
 async function getData() {
+  loading.value = true
   try {
-    loading.value = true
-    contentRef.value.style.transition = 'none'
-    const res = await getBook(route.query.id as string)
-    book.value = { ...res.data, bookmark: JSON.parse(res.data.bookmark as string || '[]') }
+    const res = await getBook(book_id.value) as any
+    const storageBookInfo = JSON.parse(localStorage.getItem(`MM_READ_BOOK_${book_id.value}`) || '{}')
+    let progress = 0
+    if (storageBookInfo?.update_time && dayjs(storageBookInfo?.update_time) > dayjs(res.data?.update_time)) {
+      progress = storageBookInfo.progress
+    }
+    else {
+      progress = res.data?.progress
+    }
+    book.value = { ...res.data, bookmark: JSON.parse(res.data.bookmark as string || '[]'), progress }
     const res2 = await http.get(book.value?.book_id?.url, { responseType: 'blob' }) as Blob
-    chapters.value = []
     content.value = (await res2.text())
-      .replace('<', '&lt;')
-      .replace('>', '&gt;')
-      .replace('script', '')
-      .replace(/^(第\s*[一二三四五六七八九十百千万\d]+\s*[章回].*)$/gm, (match) => {
-        const chapter = { title: match, id: `chapter${chapters.value.length}` }
-        chapters.value.push(chapter)
-        return `<div class="chapter" id="${chapter.id}">${match}</div>`
-      })
-      .split('\n')
-      .map(line => `<p>${line.replace(/^\s*/g, '')}</p>`)
-      .join('')
-    loading.value = false
-    initPage()
   }
   catch (error) {
+    console.error(error)
+  }
+  finally {
     loading.value = false
-    console.log(error)
   }
 }
 
 async function onUpdateBook() {
+  // console.log('update', book.value.progress)
   nextTick(() => {
-    updateBook(book.value.id, { id: book.value.id, progress: current.value / total.value, bookmark: JSON.stringify(book.value.bookmark) })
+    localStorage.setItem(`MM_READ_BOOK_${book_id.value}`, JSON.stringify({ progress: book.value.progress, update_time: dayjs().format('YYYY-MM-DD HH:mm:ss') }))
+
+    updateBook(book.value.id, { id: book.value.id, progress: book.value.progress, bookmark: JSON.stringify(book.value.bookmark) })
   })
 }
 
-function next(i) {
-  const page = current.value + i
-  if (page > total.value) {
-    return showToast('到底啦！')
+// 手势事件
+const showPop = ref<boolean>(false)
+function openPop() {
+  showPop.value = true
+  bottomPopRef.value.onOpen()
+  topPopRef.value.onOpen()
+}
+function closePop() {
+  showPop.value = false
+  bottomPopRef.value.onClose()
+  topPopRef.value.onClose()
+}
+
+function onTouchStart(e: TouchEvent) {
+  const touch = e.touches[0]
+  startX.value = touch.clientX
+  startY.value = touch.clientY
+}
+
+function onTouchEnd(e: TouchEvent) {
+  if (showPop.value) {
+    if ((e.target as any).className === 'book-wrapper') {
+      closePop()
+    }
+    return
   }
-  else if (page > 0) {
-    current.value = page
+  const touch = e.changedTouches[0]
+  endX.value = touch.clientX
+  endY.value = touch.clientY
+
+  const deltaX = endX.value - startX.value
+  const deltaY = endY.value - startY.value
+  const absX = Math.abs(deltaX)
+  const absY = Math.abs(deltaY)
+
+  if (absX > absY && absX > 20) {
+    // 左右滑动
+    if (deltaX < 0) {
+      bookRef.value?.nextPage()
+    }
+    else {
+      bookRef.value?.prevPage()
+    }
+  }
+  else if (absX < 10 && absY < 10) {
+    onClick(e)
+  }
+  else if (absY > absX && deltaY > 20) {
+    // 下滑
+    handleBookMark()
   }
 }
 
+function onTouchMove(e: TouchEvent) {
+  // 可选拦截默认行为
+  if (showPop.value) {
+
+  }
+}
+
+function onTouchCancel(e: TouchEvent) {
+  // 可选处理
+  if (showPop.value) {
+
+  }
+  startX.value = 0
+  startY.value = 0
+  endX.value = 0
+  endY.value = 0
+}
+
+// 点击触发逻辑
+function onClick(e: TouchEvent) {
+  if (showPop.value) {
+    closePop()
+    return
+  }
+  const touch = e.changedTouches[0]
+  const clientX = touch.clientX
+  const screenWidth = wrapperRef.value.clientWidth
+  const left = screenWidth / 3
+  const right = (screenWidth / 3) * 2
+
+  if (clientX < left) {
+    bookRef.value?.prevPage()
+  }
+  else if (clientX > right) {
+    bookRef.value?.nextPage()
+  }
+  else {
+    openPop()
+  }
+}
+
+// 下滑动画 + 添加书签
 const isCurrentMark = computed(() => {
   return book.value?.bookmark?.some((item) => {
-    if (item.progress >= current.value / total.value && item.progress < (current.value + 1) / total.value) {
+    if (item.progress >= (bookRef.value?.currentPage + 1) / bookRef.value?.totalPages && item.progress < (bookRef.value?.currentPage + 2) / bookRef.value?.totalPages) {
       return true
     }
     else {
@@ -166,10 +177,14 @@ const isCurrentMark = computed(() => {
     }
   })
 })
-function onToggleMark() {
+function handleBookMark() {
+  isSlidingDown.value = true
+  setTimeout(() => {
+    isSlidingDown.value = false
+  }, 400)
   if (isCurrentMark.value) {
     const index = book.value?.bookmark?.findIndex((item) => {
-      if (item.progress >= current.value / total.value && item.progress < (current.value + 1) / total.value) {
+      if (item.progress >= (bookRef.value?.currentPage + 1) / bookRef.value?.totalPages && item.progress < (bookRef.value?.currentPage + 2) / bookRef.value?.totalPages) {
         return true
       }
       else {
@@ -179,200 +194,89 @@ function onToggleMark() {
     book.value.bookmark.splice(index, 1)
   }
   else {
-    book.value.bookmark.push({ progress: current.value / total.value, title: '' })
+    book.value.bookmark.push({ progress: (bookRef.value?.currentPage + 1) / bookRef.value?.totalPages, title: '' })
   }
   onUpdateBook()
 }
 
-const bottomPopRef = ref()
-const topPopRef = ref()
-const showPop = ref<boolean>(false)
-let startX, endX, startY, endY
-function onTouchStart(e) {
-  if (showPop.value) {
-    return
-  }
-  contentRef.value.style.transition = 'none'
-  // 记录触摸开始的位置
-  startX = e.touches[0].clientX
-  startY = e.touches[0].clientY
+function onProgressChange(v) {
+  bookRef.value.jumpToProgress(v)
 }
 
-function onTouchEnd(e) {
-  if (showPop.value) {
-    return
-  }
-  endX = e.changedTouches[0].clientX // 记录触摸结束的位置
-  endY = e.changedTouches[0].clientY
-  diffX.value = startX - endX // 计算水平滑动的距离
-  diffY.value = startY - endY // 计算水平滑动的距离
-
-  if (Math.abs(diffX.value) >= Math.abs(diffY.value) && Math.abs(diffX.value) > 30) { // 设定滑动的最小距离（阈值）
-    next(diffX.value > 0 ? 1 : -1)
-    contentRef.value.style.transition = '0.4s ease'
-  }
-  else if (Math.abs(diffX.value) < Math.abs(diffY.value) && diffY.value < -30) {
-    onToggleMark()
-    contentRef.value.style.transition = '0.4s ease'
-  }
-  else if (diffX.value - diffY.value > 2 || diffY.value - diffX.value > 2) {
-    e.preventDefault()
-    e.stopPropagation()
-  }
-  diffX.value = 0
-  diffY.value = 0
-  setTimeout(() => {
-    contentRef.value.style.transition = configs.value.transition ? '0.4s ease' : 'none'
-  }, 400)
+function onPageChange(v) {
+  bookRef.value.jumpToPage(v)
 }
 
-function onTouchMove(e) {
-  if (showPop.value) {
-    return
-  }
-  endX = e.changedTouches[0].clientX // 记录触摸结束的位置
-  endY = e.changedTouches[0].clientY
-  if (diffX.value) {
-    diffX.value = startX - endX // 计算水平滑动的距离
-  }
-  else if (diffY.value) {
-    diffY.value = startY - endY // 计算水平滑动的距离
-  }
-  else {
-    const _diffX = startX - endX // 计算水平滑动的距离
-    const _diffY = startY - endY // 计算水平滑动的距离
-    if (Math.abs(_diffX) >= Math.abs(_diffY)) {
-      diffX.value = _diffX
-    }
-    else {
-      diffY.value = _diffY
-    }
-  }
-}
-
-function onTouchCancel() {
-  if (showPop.value) {
-    return
-  }
-  contentRef.value.style.transition = configs.value.transition ? '0.4s ease' : 'none'
-  diffX.value = 0
-  diffY.value = 0
-}
-
-function onContentTouchEnd(e) {
-  if (showPop.value) {
-    showPop.value = false
-    bottomPopRef.value.onClose()
-    topPopRef.value.onClose()
-    return
-  }
-  const clickX = e.clientX // 获取点击的X坐标
-  const middle = wrapperRef.value.clientWidth / 2 // 页面中间的X坐标
-
-  if (clickX < middle / 2) {
-    next(-1)
-  }
-  else if (clickX > middle + middle / 2) {
-    // 点击在页面的右侧
-    next(1)
-  }
-  else {
-    // 点击在页面的中间
-    showPop.value = true
-    bottomPopRef.value.onOpen()
-    topPopRef.value.onOpen()
-  }
-}
-
-function onUnload() {
-  // // 提交数据，确保在页面关闭时发送
-  // const success = navigator.sendBeacon(`/book/${book.value.id}`, JSON.stringify({ id: book.value.id, progress: current.value / total.value, bookmark: JSON.stringify(book.value.bookmark) }))
-  // if (!success) {
-  //   console.error('sendBeacon failed')
-  //   // 这里可以添加备用方案，例如使用fetch API，但要注意不要阻塞页面卸载
-  // }
-
-  navigator.serviceWorker.ready.then((registration) => {
-    registration.active.postMessage({ action: 'update', data: { id: book.value.id, progress: current.value / total.value }, token: userStore.token })
-  })
-}
-
+// 生命周期
 onMounted(() => {
   getData()
-  // 监听事件
-  contentRef.value.addEventListener('click', onContentTouchEnd)
   window.addEventListener('touchstart', onTouchStart, { passive: false })
   window.addEventListener('touchend', onTouchEnd, { passive: false })
   window.addEventListener('touchmove', onTouchMove, { passive: false })
   window.addEventListener('touchcancel', onTouchCancel, { passive: false })
-  window.addEventListener('beforeunload', onUnload)
-  window.addEventListener('resize', initPage, false)
 })
 
 onBeforeUnmount(() => {
-  onUpdateBook()
-
-  // 移除事件监听器
-  contentRef.value.removeEventListener('click', onContentTouchEnd)
   window.removeEventListener('touchstart', onTouchStart)
   window.removeEventListener('touchend', onTouchEnd)
   window.removeEventListener('touchmove', onTouchMove)
   window.removeEventListener('touchcancel', onTouchCancel)
-  window.removeEventListener('beforeunload', onUnload)
-  window.removeEventListener('resize', initPage, false)
 })
-
-watch(() => current.value, () => {
-  localStorage.setItem(`book${route.query.id}`, `${current.value / total.value}`)
-})
-
-// 在主线程中注册 Service Worker
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/service-worker.js')
-    .then((registration) => {
-      console.log('Service Worker registered with scope:', registration.scope)
-    })
-    .catch((error) => {
-      console.error('Service Worker registration failed:', error)
-    })
-}
-// function test() {
-//   console.log('test')
-//   navigator.serviceWorker.ready.then((registration) => {
-//     registration.active.postMessage({ action: 'update', data: { id: book.value.id, progress: current.value / total.value }, token: userStore.token })
-//   })
-// }
 </script>
 
 <template>
-  <div
-    ref="wrapperRef"
-    class="book-wrapper"
-  >
+  <div>
     <div
-      v-show="!loading"
-      ref="contentRef"
-      class="book"
-      :style="getStyles"
+      v-if="loading"
+      class="loader-overlay"
     >
-      <div v-html="content" />
-      <div ref="endRef" class="book-end">
-        读完啦！
-      </div>
+      <div class="loader-spinner" />
+      <span class="loader-text">加载中...</span>
     </div>
-    <div class="book-bottom flex items-center">
-      <div class="flex-1 text-right font-size-12 color-gray-7">
-        {{ current }}/{{ total }}
+    <transition name="bookmark-fade">
+      <div
+        v-if="isCurrentMark"
+        class="bookmark-indicator"
+      >
+        <!-- SVG书签图标 -->
+        <svg
+          class="bookmark-indicator"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path d="M6 2C4.89543 2 4 2.89543 4 4V21C4 21.5523 4.44772 22 5 22C5.27614 22 5.52678 21.8946 5.70711 21.7071L12 15.4142L18.2929 21.7071C18.6834 22.0976 19.3166 22.0976 19.7071 21.7071C19.8946 21.5268 20 21.2761 20 21V4C20 2.89543 19.1046 2 18 2H6Z" />
+        </svg>
       </div>
+    </transition>
+    <div
+      v-show="!loading" ref="wrapperRef"
+      class="book-wrapper"
+      :class="{ 'slide-down': isSlidingDown }"
+    >
+      <Book
+        v-show="!loading"
+        ref="bookRef"
+        v-model="book.progress"
+        :text="content"
+        @change="onUpdateBook"
+      />
     </div>
-    <!-- <el-button @click="test">
-      test
-    </el-button> -->
+
     <TopPop
-      ref="topPopRef" :current="current" :total="total" :configs="configs" :book="book" :is-current-mark="isCurrentMark" @current-change="onCurrentChange" @configs-change="onConfigsChange"
+      ref="topPopRef"
+      :book="book"
+      :is-current-mark="isCurrentMark"
     />
     <BottomPop
-      ref="bottomPopRef" :current="current" :total="total" :configs="configs" :book="book" :chapters="chapters" @current-change="onCurrentChange" @configs-change="onConfigsChange" @chapter-change="onChapterChange"
+      ref="bottomPopRef"
+      :current="bookRef?.currentPage"
+      :total="bookRef?.totalPages"
+      :book="book"
+      :chapters="bookRef?.chapters"
+      :content-ref="bookRef?.dom"
+      @progress-change="onProgressChange"
+      @page-change="onPageChange"
     />
   </div>
 </template>
@@ -384,48 +288,96 @@ if ('serviceWorker' in navigator) {
   position: fixed;
   inset: 0;
   overflow: hidden;
-  padding-bottom: 12px;
   box-sizing: border-box;
+  transition: transform 0.4s ease;
 }
 
-.book {
-  white-space: pre-wrap;
-  word-break: break-word;
-  height: 100%;
-  overflow: visible;
-  transition: none;
-  :deep(p) {
-    text-indent: 2em;
-    white-space: pre-wrap;
-    word-break: break-word;
-    opacity: 0.8;
-  }
-  :deep(.chapter) {
-    display: inline-block;
-    font-weight: bold;
-    margin-top: 20px;
-    width: 100%;
-    height: inherit;
+.book-wrapper.slide-down {
+  transform: translateY(70px);
+}
+
+.loader-overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  // pointer-events: none;
+}
+
+.loader-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-top-color: var(--van-primary-color);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loader-text {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #666;
+  animation: fadeIn 1.6s ease-in-out infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
   }
 
-  .book-end {
-    width: 100%;
-    height: 400px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  100% {
+    transform: rotate(360deg);
   }
 }
 
-.book-bottom {
-  position: absolute;
-  width: 100%;
-  bottom: 12px;
-  & > *:first-child {
-    padding-left: 16px;
+@keyframes fadeIn {
+  0%,
+  100% {
+    opacity: 0.4;
   }
-  & > *:last-child {
-    padding-right: 16px;
+
+  50% {
+    opacity: 1;
   }
+}
+
+.bookmark-indicator {
+  position: fixed;
+  top: 0;
+  right: 12px;
+  z-index: 10;
+  width: 28px;
+  height: 28px;
+  color: var(--van-primary-color);
+  background-color: rgba(255, 255, 255, 0.7);
+  padding: 4px;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  user-select: none;
+  pointer-events: none;
+}
+
+.bookmark-fade-enter-active,
+.bookmark-fade-leave-active {
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+
+.bookmark-fade-enter-from,
+.bookmark-fade-leave-to {
+  // opacity: 0;
+  transform: translateY(-30px);
+}
+
+.bookmark-fade-enter-to,
+.bookmark-fade-leave-from {
+  // opacity: 1;
+  transform: translateY(0);
 }
 </style>

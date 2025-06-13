@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { editUser } from '@/api/user'
 import useAppStore from '@/stores/modules/app'
-import useUserStore from '@/stores/modules/user'
 
 interface Props {
-  current?: number
-  total?: number
+  current: number
+  total: number
+  configs: Record<string, any>
   book?: Record<string, any>
   chapters?: Array<any>
   contentRef?: any
@@ -13,7 +12,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
 })
 
-const emits = defineEmits(['currentChange', 'configsChange', 'chapterChange', 'searchResultChange', 'progressChange', 'pageChange'])
+const emits = defineEmits(['currentChange', 'configsChange', 'chapterChange', 'searchResultChange'])
 
 const list = [{
   value: 'chapter',
@@ -44,7 +43,6 @@ const _current = ref<number>()
 const _configs = ref<Record<string, any>>({})
 const checked = ref<boolean>(isDark.value)
 const appStore = useAppStore()
-const userStore = useUserStore()
 function toggle() {
   toggleDark()
   appStore.switchMode(isDark.value ? 'dark' : 'light')
@@ -52,8 +50,8 @@ function toggle() {
 }
 
 function onOpen() {
-  _current.value = props.current + 1
-  _configs.value = JSON.parse(userStore.userInfo?.read_configs || '{}')
+  _current.value = props.current
+  _configs.value = props.configs
   show.value = true
 }
 function onClose() {
@@ -75,11 +73,14 @@ function onActiveSettingChange(item) {
     activeSetting.value = item
   }
 }
-function onPageChange(v) {
-  emits('pageChange', v - 1)
-}
 function onProgressChange(v) {
-  emits('progressChange', v)
+  emits('currentChange', v)
+}
+function onConfigsChange() {
+  emits('configsChange', _configs.value)
+}
+function onChapterChange(item) {
+  emits('chapterChange', item)
 }
 
 const searchKey = ref<string>('')
@@ -89,6 +90,7 @@ function onSearch() {
     props.contentRef,
     searchKey.value,
   )
+  console.log(searchResult.value, 'searchResult')
 }
 
 interface SearchResult {
@@ -114,6 +116,7 @@ function searchDomContent(
 
   const results: SearchResult[] = []
   const regex = new RegExp(escapeRegExp(searchKey), 'gi')
+
   // 直接获取所有 P 标签，比 TreeWalker 更快
   const pElements = rootDom.getElementsByTagName('p')
   let resultCount = 0
@@ -171,16 +174,9 @@ function escapeRegExp(string: string): string {
 }
 
 function onSearchResultChange(item: SearchResult) {
-  emits('progressChange', item.pElement.offsetLeft / props.contentRef.scrollWidth)
+  emits('searchResultChange', item.pElement)
 }
 
-async function onConfigsChange() {
-  const data = {
-    read_configs: JSON.stringify(_configs.value),
-  }
-  await editUser(data)
-  userStore.setUserInfo({ ...userStore.userInfo, ...data })
-}
 defineExpose({
   onOpen,
   onClose,
@@ -205,8 +201,8 @@ defineExpose({
           <van-cell
             v-for="item in props.chapters || []"
             :key="item"
-            :title="item.name"
-            @click="onProgressChange(item.progress)"
+            :title="item.title"
+            @click="onChapterChange(item)"
           />
         </van-list>
       </div>
@@ -219,7 +215,7 @@ defineExpose({
             v-for="item in props.book?.bookmark || []"
             :key="item"
             :title="`进度：${Math.round(item.progress * 10000) / 100}%`"
-            @click="onProgressChange(item.progress)"
+            @click="onProgressChange(Math.round(item.progress * props.total))"
           />
         </van-list>
       </div>
@@ -232,7 +228,7 @@ defineExpose({
           class="slider"
           :min="1"
           :max="props.total"
-          @change="onPageChange"
+          @change="onProgressChange"
         >
           <template #button>
             <div class="h-18 min-w-24 flex-center b-rd-8 bg-white p4 font-size-12 color-gray-8 shadow-sm">

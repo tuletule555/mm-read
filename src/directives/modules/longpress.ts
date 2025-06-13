@@ -2,7 +2,7 @@
  * v-longpress
  * 长按指令，长按时触发事件
  */
-import type { Directive, DirectiveBinding } from 'vue'
+import type { Directive } from 'vue'
 
 const directive: Directive = {
   beforeMount(el, binding) {

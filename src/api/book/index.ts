@@ -1,8 +1,8 @@
-import type { ResponseBody } from '../typing'
-import type { BookDto } from './interface'
+import type { PageResult, ResponseBody } from '../typing'
+import type { BookDto, BookRecordDto } from './interface'
 import http from '@/utils/request'
 
-export async function getBooks(query: Record<string, any>): Promise<ResponseBody<BookDto[]>> {
+export async function getBooks(query: Record<string, any>): Promise<PageResult<BookDto>> {
   return http.get(`/book`, { params: query })
 }
 
@@ -28,6 +28,9 @@ export async function updateBook(id: BookDto['id'], params: BookDto): Promise<Re
   return http.put(`/book/${id}`, params)
 }
 
-export async function getTotal(): Promise<ResponseBody<BookDto>> {
+export async function getTotal(): Promise<ResponseBody<any>> {
   return http.get(`/book/total`)
+}
+export async function record(id: BookDto['id']): Promise<ResponseBody<BookRecordDto>> {
+  return http.get(`/book/${id}/record`)
 }

@@ -4,6 +4,7 @@ import { createBook, getBooks } from '@/api/book'
 import type { BookDto } from '@/api/book/interface'
 import { uploadBook } from '@/api/file'
 import { getDictByType } from '@/api/dict'
+import { useData } from '@/hooks/useData'
 
 definePage({
   name: 'book.list',
@@ -13,7 +14,7 @@ definePage({
   },
 })
 
-const books = ref<BookDto[]>([])
+// const books = ref<BookDto[]>([])
 const optionProgress = ref<any[]>([])
 async function getOptionProgress() {
   try {
@@ -45,24 +46,32 @@ async function getOptionType() {
   }
 }
 
-const searchParam = ref<Record<string, any>>({})
+// const searchParam = ref<Record<string, any>>({})
 /**
  * 异步获取书籍数据
  *
  * 该函数调用 `getBooks` 方法获取书籍列表，并将结果存储在 `books` 变量中。
  * 如果请求失败，将捕获错误但不进行处理。
  */
-async function getData() {
-  try {
-    const res = await getBooks(searchParam.value)
-    books.value = res.data
-  }
-  catch (error) {
-  }
-}
-async function refresh() {
+// async function getData() {
+//   try {
+//     const res = await getBooks(searchParam.value)
+//     books.value = res.data.items
+//   }
+//   catch (error) {
+//   }
+// }
+const { list, loading, finished, load, refresh, searchParams } = useData({
+  getData: getBooks,
+  pageSize: 60,
+  firstPage: 1,
+  searchParams: {
+  },
+})
+
+async function onRefresh() {
   onCancelSelect()
-  getData()
+  refresh()
 }
 
 const router = useRouter()
@@ -106,90 +115,98 @@ async function handleUploadSuccess(file) {
       name: file.name.slice(0, file.name.lastIndexOf('.')),
       book_id: file.id,
     })
-    getData()
+    refresh()
   }
   catch (e) {
     // TODO handle the exception
+    console.error(e)
   }
 }
 
 onMounted(async () => {
   getOptionType()
   getOptionProgress()
-  getData()
 })
 </script>
 
 <template>
-  <NavBar :placeholder="false">
-    <template #right>
-      <template v-if="!isSelect">
-        <Upload
-          class="head-image"
-          :preview-image="false"
-          reupload
-          :api="uploadBook"
-          :deletable="false"
-          accept="text/plain"
-          @success="handleUploadSuccess"
-        >
-          <template #default>
-            添加
-          </template>
-        </Upload>
-      </template>
-      <template v-else>
-        <div @click="onCancelSelect">
-          取消
-        </div>
-      </template>
-    </template>
-  </NavBar>
-  <van-dropdown-menu class="z-100">
-    <van-dropdown-item v-model="searchParam.type" :options="optionType" title="书籍分类" @change="refresh" />
-    <van-dropdown-item v-model="searchParam.progress" :options="optionProgress" title="阅读进度" @change="refresh" />
-  </van-dropdown-menu>
-  <div class="pb16 pl16 pt16">
-    <van-row
-      :gutter="[0, 20]"
-      wrap
-    >
-      <van-col
-        v-for="book in books"
-        :key="book.id"
-        v-longpress="() => { onStartSelectBook(book) }"
-        span="8"
-        class="pr16"
-        @click="toDetail(book)"
-      >
-        <div
-          class="book-img h-140 w-87 w-full b-rd-4 bg-white p8 color-gray-8 shadow-md"
-          :class="{ check: isBookSelected(book) && isSelect }"
-        >
-          {{ book.name }}
-          <div
-            v-if="isSelect"
-            class="checkbox"
+  <div class="min-h-full flex flex-col">
+    <NavBar :placeholder="false">
+      <template #right>
+        <template v-if="!isSelect">
+          <Upload
+            class="head-image"
+            :preview-image="false"
+            reupload
+            :api="uploadBook"
+            :deletable="false"
+            accept="text/plain"
+            @success="handleUploadSuccess"
           >
-            <SvgIcon
-              width="100%"
-              height="100%"
-              class="color-primary"
-              :name="isBookSelected(book) ? 'icon-check-active' : 'icon-check'"
-            />
+            <template #default>
+              添加
+            </template>
+          </Upload>
+        </template>
+        <template v-else>
+          <div @click="onCancelSelect">
+            取消
           </div>
-        </div>
-        <div class="pt-8 font-size-12 color-gray-7">
-          {{ book.progress === 0 ? '未开始' : book.progress === 1 ? '已完成' : `进度：${Math.floor(book.progress * 10000) / 100}%` }}
-        </div>
-      </van-col>
-      <!-- <van-col span="8" /> -->
-    </van-row>
+        </template>
+      </template>
+    </NavBar>
+    <van-dropdown-menu class="z-100">
+      <van-dropdown-item v-model="searchParams.type" :options="optionType" title="书籍分类" @change="onRefresh" />
+      <van-dropdown-item v-model="searchParams.progress" :options="optionProgress" title="阅读进度" @change="onRefresh" />
+    </van-dropdown-menu>
+    <van-list
+      v-model:loading="loading"
+      class="h-0 flex-1 overflow-auto pb16 pl16 pt16"
+      :finished="finished"
+      finished-text="没有更多了"
+      @load="load"
+    >
+      <van-row
+        :gutter="[0, 20]"
+        wrap
+      >
+        <van-col
+          v-for="book in list"
+          :key="book.id"
+          v-longpress="() => { onStartSelectBook(book) }"
+          span="8"
+          class="pr16"
+          @click="toDetail(book)"
+        >
+          <div
+            class="book-img h-140 w-87 w-full b-rd-4 bg-white p8 font-size-14 color-gray-8 shadow-md"
+            :class="{ check: isBookSelected(book) && isSelect }"
+          >
+            {{ book.name }}
+            <div
+              v-if="isSelect"
+              class="checkbox"
+            >
+              <SvgIcon
+                width="100%"
+                height="100%"
+                class="color-primary"
+                :name="isBookSelected(book) ? 'icon-check-active' : 'icon-check'"
+              />
+            </div>
+          </div>
+          <div class="pt-8 font-size-12 color-gray-7">
+            {{ book.progress === 0 ? '未开始' : book.progress === 1 ? '已完成' : `进度：${Math.floor(book.progress * 10000) / 100}%` }}
+          </div>
+        </van-col>
+        <!-- <van-col span="8" /> -->
+      </van-row>
+    </van-list>
     <BottomPop
       ref="bottomPopRef"
       :selected-book="selectedBook"
       :option-type="optionType"
-      @callback="refresh"
+      @callback="onRefresh"
     />
   </div>
 </template>

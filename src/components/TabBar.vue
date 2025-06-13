@@ -30,6 +30,12 @@ const show = computed(() => {
         <div class="i-carbon:volume-block-storage" />
       </template>
     </van-tabbar-item> -->
+    <van-tabbar-item replace to="/share">
+      分享
+      <template #icon>
+        <div class="i-carbon:logo-ansible-community" />
+      </template>
+    </van-tabbar-item>
     <van-tabbar-item replace to="/book/list">
       书柜
       <template #icon>

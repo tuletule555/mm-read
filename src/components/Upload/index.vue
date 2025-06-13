@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { showImagePreview, showToast } from 'vant'
+import { showToast } from 'vant'
 import { uploadFile } from '@/api/file/index'
 
 const props = withDefaults(defineProps<Props>(), {
@@ -81,30 +81,30 @@ function onOversize() {
   showToast(`文件大小不能超过${props.fileSize}MB`)
 }
 
-function onDelete(item: any, index: number) {
-  fileList.value = fileList.value.filter((file: any, fileIndex: number) => {
-    return fileIndex !== index
-  })
-}
+// function onDelete(item: any, index: number) {
+//   fileList.value = fileList.value.filter((file: any, fileIndex: number) => {
+//     return fileIndex !== index
+//   })
+// }
 
-function onViewImage(item: any) {
-  showImagePreview([item.preview_url])
-}
+// function onViewImage(item: any) {
+//   showImagePreview([item.preview_url])
+// }
 
-function getFileType(file: any) {
-  const fileName = file.name
-  const suffix = fileName?.substring(fileName.lastIndexOf('.') + 1).toLowerCase() ?? ''
-  switch (suffix) {
-    case 'png':
-    case 'jpg':
-    case 'jpeg':
-    case 'bmp':
-    case 'gif':
-      return 'image'
-    default:
-      return 'other'
-  }
-}
+// function getFileType(file: any) {
+//   const fileName = file.name
+//   const suffix = fileName?.substring(fileName.lastIndexOf('.') + 1).toLowerCase() ?? ''
+//   switch (suffix) {
+//     case 'png':
+//     case 'jpg':
+//     case 'jpeg':
+//     case 'bmp':
+//     case 'gif':
+//       return 'image'
+//     default:
+//       return 'other'
+//   }
+// }
 </script>
 
 <template>

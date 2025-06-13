@@ -37,24 +37,25 @@ defineExpose({
 
 <template>
   <div>
-    <van-popup v-model:show="show" position="right" :style="{ 'height': '100%', 'width': '100%', 'margin': 0, 'max-width': '100%' }">
-      <NavBar title="修改简介" />
-      <van-form class="mt-8" @submit="onSubmit">
-        <van-field
-          v-model="data"
-          placeholder="请输入简介"
-          type="textarea"
-          label-align="top"
-          maxlength="500"
-          show-word-limit
-          autosize
-        />
+    <van-popup v-model:show="show" position="right" :style="{ 'height': '100%', 'width': '100%', 'margin': 0, 'max-width': '100%', 'background': 'var(--van-background)' }">
+      <div class="min-h-full flex flex-col">
+        <NavBar title="修改手机号" :back="onClose" />
+        <van-form class="mt20 h-0 flex-1">
+          <van-cell-group inset>
+            <van-field
+              v-model="data"
+              placeholder="请输入手机号"
+              type="tel"
+              label-align="top"
+            />
+          </van-cell-group>
+        </van-form>
         <div class="pb-30 pl-24 pr-24 pt-60">
-          <van-button class="b-rd-8" type="primary" block native-type="submit">
+          <van-button class="b-rd-8" type="primary" round block @click="onSubmit">
             确定
           </van-button>
         </div>
-      </van-form>
+      </div>
     </van-popup>
   </div>
 </template>

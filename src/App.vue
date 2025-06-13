@@ -3,7 +3,7 @@ import { storeToRefs } from 'pinia'
 import useUserStore from '@/stores/modules/user'
 import useAppStore from '@/stores/modules/app'
 import useRouteCache from '@/stores/modules/routeCache'
-import useRouteTransitionNameStore from '@/stores/modules/routeTransitionName'
+// import useRouteTransitionNameStore from '@/stores/modules/routeTransitionName'
 import useAutoThemeSwitcher from '@/hooks/useAutoThemeSwitcher'
 import { getUserInfo } from '@/api/user/index'
 
@@ -31,8 +31,8 @@ useHead({
 const appStore = useAppStore()
 const { mode, themeVars } = storeToRefs(appStore)
 
-const routeTransitionNameStore = useRouteTransitionNameStore()
-const { routeTransitionName } = storeToRefs(routeTransitionNameStore)
+// const routeTransitionNameStore = useRouteTransitionNameStore()
+// const { routeTransitionName } = storeToRefs(routeTransitionNameStore)
 const { initializeThemeSwitcher } = useAutoThemeSwitcher(appStore)
 
 const keepAliveRouteNames = computed(() => {
@@ -50,11 +50,6 @@ async function getUser() {
   }
 }
 
-onMounted(() => {
-  initializeThemeSwitcher()
-  getUser()
-})
-
 const route = useRoute()
 watch([() => route.name, () => appStore.mode], () => {
   useHead({
@@ -66,20 +61,47 @@ watch([() => route.name, () => appStore.mode], () => {
     ],
   })
 })
+
+function setHtmlBackgroundColor() {
+  function getBgFromHref() {
+    const url = window.location.href
+    const match = url.match(/[?&]bg=([^&]*)/)
+    return match ? decodeURIComponent(match[1]) : 'var(--van-gray-1)'
+  }
+
+  const bg = getBgFromHref()
+
+  const html = document.documentElement
+  html.style.setProperty('--background-color', bg)
+}
+
+onMounted(() => {
+  initializeThemeSwitcher()
+  getUser()
+  setHtmlBackgroundColor()
+})
 </script>
 
 <template>
-  <VanConfigProvider class="flex flex-col container" :theme="mode" :theme-vars="themeVars" theme-vars-scope="global">
+  <VanConfigProvider
+    class="flex flex-col container"
+    :theme="mode"
+    :theme-vars="themeVars"
+    theme-vars-scope="global"
+  >
     <NavBar />
     <div class="h-0 flex-1 overflow-auto">
       <router-view v-slot="{ Component, route }">
         <!-- <transition :name="routeTransitionName"> -->
         <keep-alive :include="keepAliveRouteNames">
-          <component :is="Component" :key="route.name" />
+          <component
+            :is="Component"
+            :key="route.name"
+          />
         </keep-alive>
 
-      <!-- </transition> -->
-      <!-- <transition name="routeTransitionName" mode="out-in">
+        <!-- </transition> -->
+        <!-- <transition name="routeTransitionName" mode="out-in">
         <keep-alive :include="keepAliveRouteNames">
           <component :is="Component" :key="route.name" />
         </keep-alive>
@@ -92,9 +114,10 @@ watch([() => route.name, () => appStore.mode], () => {
 
 <style scoped lang="scss">
 .container {
-  height: 100%;
+  height: 100dvh;
   width: 100dvw;
   position: absolute;
   inset: 0;
+  margin: auto;
 }
 </style>
